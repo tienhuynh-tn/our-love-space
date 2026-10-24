@@ -52,7 +52,8 @@ export function useAnswerVoice() {
     const next = new SpeechSynthesisUtterance(text);
     next.voice = voice.current;
     next.lang = "en-US";
-    next.rate = slow ? 0.75 : 1;
+    // Use a clearly distinct practice speed; the former 0.75 rate was subtle.
+    next.rate = slow ? 0.5 : 1;
     next.onend = () => {
       if (mounted.current && generation.current === attempt) { setSpeaking(false); utterance.current = null; }
     };

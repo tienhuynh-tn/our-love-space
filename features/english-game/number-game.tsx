@@ -68,7 +68,12 @@ export function NumberGame({ initialNumber, showPrivateLink = true }: { initialN
             setRangeError("");
             nextRound(nextRange, nextMode);
           }}>{MODES.map(item => <option value={item.value} key={item.value}>{item.label}</option>)}</select></Field>
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-stone-800 dark:accent-stone-200" checked={slow} onChange={event => { voice.cancel(); setSlow(event.target.checked); }} />Slow audio</label>
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm"><input type="checkbox" className="size-4 accent-stone-800 dark:accent-stone-200" checked={slow} onChange={event => {
+            const nextSlow = event.target.checked;
+            setSlow(nextSlow);
+            // Speech engines apply rate when an utterance starts, so replace active speech.
+            if (voice.speaking) voice.speak(answer.english, nextSlow);
+          }} />Slow audio</label>
         </div>
         {numericMode && <div className="mt-3">
           <Field label="Range" name="level"><select name="level" className="travel-input" value={level} onChange={event => {
@@ -135,7 +140,7 @@ export function NumberGame({ initialNumber, showPrivateLink = true }: { initialN
         <summary className="min-h-11 cursor-pointer py-3 text-xs">Help</summary>
         <div className="space-y-2 pb-4 text-xs leading-6">
           <p>Recordings are never uploaded and stop automatically after 30 seconds. Microphone access needs HTTPS or localhost.</p>
-          <p>Listen uses an American English voice available in your browser. Slow audio changes the speed of the next answer.</p>
+          <p>Listen uses an American English voice available in your browser. Slow audio requests half-speed answers. Changing speed while listening restarts the answer at the selected speed.</p>
           <p>IPA is shown word by word. Vietnamese hints are approximate; capitals mark stress. Listen for sounds and final consonants that Vietnamese spelling can’t fully capture.</p>
           <p>Custom ranges accept whole numbers from 0 to 1,000,000. Ordinals start at 1. Use matching bounds to practice one value.</p>
           <p>Dates cover 2000–2099, with the month first. Times use a 12-hour clock with AM/PM; minutes below ten use “oh.” Switching practice modes resets the range and clears your recording.</p>

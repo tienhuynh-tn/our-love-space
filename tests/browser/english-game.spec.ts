@@ -4,6 +4,7 @@ declare global {
   interface Window {
     englishGameTest: {
       spoken: { text: string; rate: number }[];
+      utterances: SpeechSynthesisUtterance[];
       canceled: number;
       streams: MediaStream[];
       revoked: string[];
@@ -24,7 +25,7 @@ test.use({ launchOptions: {
 test.beforeEach(async ({ page, request }) => {
   await request.post("http://127.0.0.1:55439/__reset");
   await page.addInitScript(() => {
-    const data: Window["englishGameTest"] = { spoken: [], canceled: 0, streams: [], revoked: [], deny: false, delay: false, voicesReady: true };
+    const data: Window["englishGameTest"] = { spoken: [], utterances: [], canceled: 0, streams: [], revoked: [], deny: false, delay: false, voicesReady: true };
     window.englishGameTest = data;
     const events = new EventTarget();
     Object.defineProperty(window,"speechSynthesis",{ configurable: true, value: {
@@ -32,7 +33,7 @@ test.beforeEach(async ({ page, request }) => {
       addEventListener: events.addEventListener.bind(events), removeEventListener: events.removeEventListener.bind(events),
       dispatchEvent: events.dispatchEvent.bind(events),
       cancel: () => { data.canceled++; },
-      speak: (utterance: SpeechSynthesisUtterance) => data.spoken.push({ text: utterance.text,rate: utterance.rate }),
+      speak: (utterance: SpeechSynthesisUtterance) => { data.utterances.push(utterance); data.spoken.push({ text: utterance.text,rate: utterance.rate }); },
     } });
     Object.defineProperty(window,"SpeechSynthesisUtterance",{ configurable:true,value: class {
       text: string; constructor(text: string) { this.text = text; }
@@ -87,11 +88,13 @@ test("ranges, reveal, American speech and small layouts stay consistent",async (
   await page.getByRole("button",{name:"Listen",exact:true}).click();
   await expect(page.getByRole("button",{name:"Stop audio",exact:true})).toBeVisible();
   await page.getByLabel("Slow audio",{exact:true}).check();
-  await expect(page.getByRole("button",{name:"Listen",exact:true})).toBeVisible();
+  await expect(page.getByRole("button",{name:"Stop audio",exact:true})).toBeVisible();
+  await expect.poll(() => page.evaluate(() => window.englishGameTest.spoken)).toEqual([{text:"twenty-one",rate:1},{text:"twenty-one",rate:.5}]);
+  await page.getByRole("button",{name:"Stop audio",exact:true}).click();
   await page.getByRole("button",{name:"Listen",exact:true}).click();
   await page.getByRole("button",{name:"Stop audio",exact:true}).click();
   await expect(page.getByRole("button",{name:"Listen",exact:true})).toBeVisible();
-  expect(await page.evaluate(() => window.englishGameTest.spoken)).toEqual([{text:"twenty-one",rate:1},{text:"twenty-one",rate:.75}]);
+  expect(await page.evaluate(() => window.englishGameTest.spoken)).toEqual([{text:"twenty-one",rate:1},{text:"twenty-one",rate:.5},{text:"twenty-one",rate:.5}]);
   await page.getByRole("button",{name:"Next",exact:true}).click();
   await expect(page.getByRole("region",{name:"Practice answer"})).toHaveCount(0);
   await page.getByLabel("From",{exact:true}).fill("50");
@@ -279,4 +282,33 @@ test("mode changes release capture, revoke clips and ignore late microphone gran
   await page.getByLabel("Practice",{exact:true}).selectOption("dates");
   await page.evaluate(() => window.englishGameTest.completePermission?.());
   await expect.poll(() => page.evaluate(() => window.englishGameTest.streams.every(stream => stream.getTracks().every(track => track.readyState === "ended")))).toBe(true);
+});
+
+
+test("slow answers restart immediately, restore normal speed and survive stale voice callbacks",async ({ page }) => {
+  await page.goto("/english-game");
+  await chooseNumber(page,21);
+  await page.getByLabel("Slow audio",{exact:true}).check();
+  expect(await page.evaluate(() => window.englishGameTest.spoken)).toEqual([]);
+  await page.getByRole("button",{name:"Listen",exact:true}).click();
+  expect(await page.evaluate(() => window.englishGameTest.spoken.at(-1))).toEqual({text:"twenty-one",rate:.5});
+  await page.getByLabel("Slow audio",{exact:true}).uncheck();
+  expect(await page.evaluate(() => window.englishGameTest.spoken.at(-1))).toEqual({text:"twenty-one",rate:1});
+  // A canceled slow utterance must not mark its replacement as finished or failed.
+  await page.evaluate(() => {
+    const old = window.englishGameTest.utterances[0];
+    old.onend?.(new Event("end") as SpeechSynthesisEvent);
+    old.onerror?.(Object.assign(new Event("error"),{error:"interrupted"}) as SpeechSynthesisErrorEvent);
+  });
+  await expect(page.getByRole("button",{name:"Stop audio",exact:true})).toBeVisible();
+  for (const mode of ["numbers","ordinals","dates","times"]) {
+    await page.getByLabel("Practice",{exact:true}).selectOption(mode);
+    await page.getByLabel("Slow audio",{exact:true}).check();
+    await page.getByRole("button",{name:"Show answer",exact:true}).click();
+    const answer = await page.getByRole("region",{name:"Practice answer"}).locator("dd").first().innerText();
+    await page.getByRole("button",{name:"Listen",exact:true}).click();
+    expect(await page.evaluate(() => window.englishGameTest.spoken.at(-1))).toEqual({text:answer,rate:.5});
+    await page.getByRole("button",{name:"Next",exact:true}).click();
+    await expect(page.getByRole("button",{name:"Listen",exact:true})).toBeVisible();
+  }
 });
