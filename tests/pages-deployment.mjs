@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { readFile } from "node:fs/promises";
-import { extname, resolve, sep } from "node:path";
+import { extname, join, resolve, sep } from "node:path";
+import { tmpdir } from "node:os";
 import { chromium, expect } from "@playwright/test";
 
 // Serve the actual export with no Next.js server, matching Pages' static hosting.
@@ -55,7 +56,7 @@ try {
         await expect(page.getByRole("region",{name:"Practice answer"})).toHaveCount(0);
       }
     }
-    await page.screenshot({path:`/private/tmp/english-pages-${viewport.width}.png`,fullPage:true});
+    await page.screenshot({path:join(tmpdir(),`english-pages-${viewport.width}.png`),fullPage:true});
     assert.deepEqual(errors,[]);
     assert.ok(requests.every(url => url.startsWith(`${origin}${basePath}/`)),"No external or unprefixed requests");
     assert.ok(!requests.some(url => /supabase|\/login|\/adventures/.test(url)),"Static game must stay independent of private routes");
