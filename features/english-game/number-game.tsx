@@ -16,7 +16,7 @@ function MicrophoneIcon() {
   return <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><rect x="9" y="3" width="6" height="12" rx="3" /><path d="M5 11a7 7 0 0 0 14 0M12 18v4m-4 0h8" /></svg>;
 }
 
-export function NumberGame({ initialNumber }: { initialNumber: number }) {
+export function NumberGame({ initialNumber, showPrivateLink = true }: { initialNumber: number; showPrivateLink?: boolean }) {
   const [prompt, setPrompt] = useState<PracticePrompt>({ mode: "numbers", value: initialNumber });
   const mode = prompt.mode;
   const numericMode = mode === "numbers" || mode === "ordinals";
@@ -54,7 +54,7 @@ export function NumberGame({ initialNumber }: { initialNumber: number }) {
     <div className="mx-auto max-w-2xl space-y-4">
       <header className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">English practice</h1>
-        <Link href="/login" prefetch={false} className="inline-flex min-h-11 items-center rounded-xl px-1 text-xs font-medium text-stone-600 hover:underline dark:text-stone-300">Our private space ↗</Link>
+        {showPrivateLink && <Link href="/login" prefetch={false} className="inline-flex min-h-11 items-center rounded-xl px-1 text-xs font-medium text-stone-600 hover:underline dark:text-stone-300">Our private space ↗</Link>}
       </header>
 
       <Card className="p-5 sm:p-7">

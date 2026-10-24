@@ -1,0 +1,13 @@
+import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
+import "./globals.css";
+
+export const metadata: Metadata = {
+  title: "English Pronunciation Practice",
+  description: "Practice English numbers, ordinals, dates, and times with audio, recording, IPA, and Vietnamese hints. No account needed.",
+};
+export const viewport: Viewport = { width: "device-width", initialScale: 1 };
+
+export default function Layout({ children }: { children: ReactNode }) {
+  return <html lang="en" className="h-full antialiased"><body className="min-h-full">{children}</body></html>;
+}

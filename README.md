@@ -14,6 +14,14 @@ Other Home cards still use `lib/mock-love-space.ts`. Our Day has no persisted ed
 
 Microphone access is requested only after Record is pressed and needs HTTPS or localhost. Each recording is limited to 30 seconds, stays in page memory, and clears on the next round or page exit. Nothing records to Supabase. Answer audio uses an available US English browser voice; devices without one retain the written guides and recording controls. Browser voice services may require a connection. There is no transcription, scoring, or saved recording history.
 
+## GitHub Pages deployment
+
+`.github/workflows/nextjs.yml` publishes the public English game on pushes to `main` or manual dispatch. In repository **Settings → Pages**, select **GitHub Actions** as the source. The workflow uses Node 22, checks lint/types/unit tests and the exported site in Chromium, and uploads only `sites/english-game/out`.
+
+The static entry points reuse the game UI and pronunciation/recording hooks, without importing private routes, Supabase clients, or the authentication proxy. The private-space link is hidden in this build. Pages does not host the private app, run Server Actions, or apply database migrations; deploy the full app separately to a host supporting Next.js servers.
+
+Run `npm run build:pages` to export locally, then `npm run test:pages` to check it with Playwright Chromium (install using `npx playwright install chromium` if needed). The default URL is `https://tienhuynh-tn.github.io/our-love-space/`; `/our-love-space/english-game/` also works. The first prompt is fixed at 21 for static hydration; Next and mode/range changes generate random prompts normally. `PAGES_BASE_PATH` overrides the default `/our-love-space` (use an empty value for a custom-domain root); the workflow obtains it from GitHub automatically. No Supabase secrets or configuration are needed for Pages.
+
 ## Setup
 
 Use Node.js 22.18+ (tests use native TypeScript stripping).
